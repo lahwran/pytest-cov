@@ -1,5 +1,7 @@
 """Coverage plugin for pytest."""
 
+import pytest
+
 
 def pytest_addoption(parser):
     """Add options to control coverage."""
@@ -25,11 +27,30 @@ def pytest_addoption(parser):
                          'default: False')
 
 
-def pytest_configure(config):
-    """Activate coverage plugin if appropriate."""
+_plugin = None
 
+
+def _enable_plugin(manager):
+    global _plugin
+    if _plugin is None:
+        print 'enabled'
+        _plugin = CovPlugin()
+        manager.register(_plugin, '_cov')
+
+
+@pytest.mark.tryfirst
+def pytest_load_initial_conftests(early_config, parser, args, __multicall__):
+    ns = parser.parse_known_args(args)
+    if ns.cov_source or early_config.getvalue('cov_source'):
+        print 'in initial'
+        _enable_plugin(early_config.pluginmanager)
+
+
+def _pytest_configure(config):
+    """Activate coverage plugin if appropriate."""
     if config.getvalue('cov_source'):
-        config.pluginmanager.register(CovPlugin(), '_cov')
+        print 'in configure'
+        _enable_plugin(config.pluginmanager)
 
 
 class CovPlugin(object):
